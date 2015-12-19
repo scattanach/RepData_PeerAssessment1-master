@@ -1,0 +1,80 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+
+```{r echo = TRUE}
+
+MyData <- read.csv('C:/Users/scott/Documents/GitHub/RepResP1/repdata-data-activity/activity.csv', header = TRUE)
+MyData <- MyData[!is.na(MyData$steps), ]
+MyData$date <- as.Date(MyData$date, "%Y-%m-%d")
+
+```
+
+
+## What is mean total number of steps taken per day?
+```{r echo = TRUE}
+
+meanData <- aggregate(MyData$steps, list(date=MyData$date), mean)
+medianData <- aggregate(MyData$steps, list(date=MyData$date), median)
+
+```
+
+## What is the average daily activity pattern?
+```{r echo = TRUE}
+
+meanTS <- aggregate(MyData$steps, list(interval=MyData$interval), mean)
+plot(MyData$interval, MyData$steps, type="l", xlab= "Interval", ylab= "Steps")
+meanTS[which.max( meanTS[,2] ),]
+
+```
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps? 
+Interval 835.
+
+## Imputing missing values
+```{r echo = TRUE}
+
+MyNA <- read.csv('C:/Users/scott/Documents/GitHub/RepResP1/repdata-data-activity/activity.csv', header = TRUE)
+MyNA$date <- as.Date(MyNA$date, "%Y-%m-%d")
+MyNA <- MyNA[is.na(MyNA$steps), ]
+nrow(MyNA)
+
+MergeData <- merge(MyNA, meanTS, by="interval")[, c('x', 'date', 'interval')]
+names(MergeData) <- c("steps", "date", "interval")
+FullData <- rbind(MyData, MergeData)
+
+MySum <- aggregate(FullData$steps, list(date=FullData$date), sum)
+barplot(MySum$x, names.arg=MySum$date, ylab = "Steps", xlab = "Date")
+
+meanFull <- aggregate(FullData$steps, list(date=FullData$date), mean)
+medianFull <- aggregate(FullData$steps, list(date=FullData$date), median)
+head(meanData[order(meanData$date),])
+head(meanFull[order(meanFull$date),])
+head(medianData[order(medianData$date),])
+head(medianFull[order(medianFull$date),])
+
+```
+
+What is the impact of imputing missing data on the estimates of the total daily number of steps?  
+I'm not seeing any change in the periods in both data sets.
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r echo = TRUE}
+
+FullData$dayOfWeek <- weekdays(as.Date(FullData$date, "%Y-%m-%d"))
+
+WeekDay <- subset(FullData, !(dayOfWeek == "Saturday" | dayOfWeek == "Sunday"))
+WeekEnd <- subset(FullData, dayOfWeek == "Saturday" | dayOfWeek == "Sunday")
+
+par(mfrow=c(2,1))
+plot(WeekEnd$interval, WeekEnd$steps, type="l", xlab= "Interval", ylab= "Steps", main="WeekEnd")
+plot(WeekDay$interval, WeekDay$steps, type="l", xlab= "Interval", ylab= "Steps", main="WeekDay")
+grid()
+
+```
